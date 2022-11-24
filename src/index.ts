@@ -5,7 +5,6 @@ export type Occurence = {
     code: string;
     title: string;
     category: string;
-    description: string;
     tags: string[];
   };
 
@@ -30,6 +29,7 @@ export type Repo = {
 
 export default class DeepSourceAPI {
   private readonly PAT: string;
+
   private static readonly OccurenceQLQuery: string = `
     edges {
       node {
@@ -43,12 +43,28 @@ export default class DeepSourceAPI {
             shortcode
             title
             category
-            shortDescription
             tags
           }
         }
       }
   `;
+
+  /**
+   * GraphQL query to get all issues in the default branch of a repo
+   */
+  private static readonly AllIssuesQuery = `
+    defaultBranch
+      issues {
+        totalCount
+        edges {
+          node {
+            occurrences {
+              ${DeepSourceAPI.OccurenceQLQuery}
+            }
+          }
+        }
+      }
+    `;
 
   public static readonly ApiUrl = "https://api.deepsource.io/graphql/";
 
@@ -87,7 +103,6 @@ export default class DeepSourceAPI {
         code: issue.shortcode,
         title: issue.title,
         category: issue.category,
-        description: issue.shortDescription,
         tags: issue.tags,
       },
       path,
@@ -183,6 +198,33 @@ export default class DeepSourceAPI {
 
     if (typeof gqlResp === "object" && typeof gqlResp.data !== "undefined") {
       return this.getRepoDataFromGqlResponse(gqlResp);
+    }
+
+    return null;
+  }
+
+  async getAllIssuesInRepo(name: string, login: string, vcs = "GITHUB") {
+    const gqlQuery = `{
+      repository(
+        name:"${name}",
+        login:"${login}",
+        vcsProvider:${vcs}
+      ) {
+        ${DeepSourceAPI.AllIssuesQuery}
+      }
+  }`;
+
+    const gqlResp = await this.fetch(gqlQuery);
+
+    if (typeof gqlResp === "object" && typeof gqlResp.data !== "undefined") {
+      const issues = gqlResp.data.repository.issues.edges.map(
+        (qlNode: Record<string, any>) => qlNode.node.occurrences.edges
+      );
+      return issues
+        .flat()
+        .map((occurrence: Record<string, any>) =>
+          this.convertOccurence(occurrence)
+        );
     }
 
     return null;
