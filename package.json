@@ -1,6 +1,6 @@
 {
   "name": "deepsource-node",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A JavaScript wrapper around the DeepSource API",
   "source": "src/index.ts",
   "main": "dist/index.js",
