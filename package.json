@@ -14,7 +14,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "watch": "parcel watch",
-    "build": "parcel build"
+    "build": "tsc --build && parcel build"
   },
   "targets": {
     "browser": {
